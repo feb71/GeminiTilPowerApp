@@ -10,8 +10,8 @@ def process_aly_sheet(df, objekt_navn):
     return pd.DataFrame(data)
 
 def process_sfi_sheet(df, objekt_navn):
-    postnummer = df.iloc[6, 1:].values
-    mengder = df.iloc[15, 1:].values
+    postnummer = df.iloc[5, 1:].values
+    mengder = df.iloc[14, 1:].values
     kommentar = f"{objekt_navn}: Lengdeprofil"
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
