@@ -58,14 +58,13 @@ if excel_file:
         # Lagre resultatet i en buffer
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            processed_df.to_excel(writer, index=False, sheet_name=sheet_name)
-            writer.save()
-            buffer.seek(0)
+            processed_df.to_excel(writer, index=False, sheet_name=sheet)
+        buffer.seek(0)
 
         # Tilby nedlasting av filen
         st.download_button(
-            label=f"Last ned behandlet data fra {sheet_name}",
+            label="Download processed file",
             data=buffer,
-            file_name=f"behandlet_{sheet_name}.xlsx",
+            file_name=f"processed_{sheet}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
