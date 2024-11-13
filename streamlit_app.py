@@ -1,41 +1,34 @@
 import pandas as pd
 import streamlit as st
-import os
-
-# Synkronisert mappe for lagring
-output_folder = "path/to/your/synced/folder"
+import io
 
 def process_aly_sheet(df, objekt_navn):
     # Henter postnummer fra rad 7, kolonne B og utover
     postnummer = df.iloc[6, 1:].dropna().values  # Rad 7 tilsvarer indeks 6
-
     # Henter mengder fra rad 9, kolonne B og utover
     mengder = df.iloc[8, 1:].dropna().values  # Rad 9 tilsvarer indeks 8
-
     # Oppretter en kommentar basert på objektets navn
-    kommentar = f"{objekt_navn}: Applag"
-
+    kommentar = [f"{objekt_navn}: Applag"] * len(postnummer)
     # Kombinerer dataene i en DataFrame
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
-
 def process_sfi_cross_section(df, objekt_navn):
     # Behandlingslogikk for tverrprofil
-    postnummer = df.iloc[6, 1:].values
-    mengder = df.iloc[15, 1:].values
+    postnummer = df.iloc[6, 1:].dropna().values
+    mengder = df.iloc[15, 1:].dropna().values
     profiler = df.iloc[17:, 0].dropna().values
     første_profil = profiler[0] if len(profiler) > 0 else None
     siste_profil = profiler[-1] if len(profiler) > 0 else None
-    kommentar = f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}" if første_profil and siste_profil else None
+    kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer) if første_profil and siste_profil else [f"{objekt_navn}: Tverrprofil"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
 def process_sfi_longitudinal(df, objekt_navn):
     # Behandlingslogikk for lengdeprofil
-    postnummer = df.iloc[6, 1:].values  # Postnummer i rad 7, fra kolonne B
-    mengder = df.iloc[15, 1:].values  # Mengde i rad 16, fra kolonne B
-    kommentar = f"{objekt_navn}: Lengdeprofil"  # Enklere kommentar for lengdeprofil
+    postnummer = df.iloc[6, 1:].dropna().values  # Postnummer i rad 7, fra kolonne B
+    mengder = df.iloc[15, 1:].dropna().values  # Mengde i rad 16, fra kolonne B
+    kommentar = [f"{objekt_navn}: Lengdeprofil"] * len(postnummer)  # Enklere kommentar for lengdeprofil
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
@@ -59,11 +52,9 @@ def determine_sfi_type(df):
 
 def process_xfi_sheet(df, objekt_navn):
     # Tilpasset behandling for .xfi-arkfaner
-    # Implementer logikk basert på .xfi-strukturen
-    # Eksempel:
     postnummer = df.iloc[8:, 0].dropna().values  # Postnummer fra rad 9, kolonne A
     mengder = df.iloc[8:, 10].dropna().values  # Mengder fra rad 9, kolonne K
-    kommentar = f"{objekt_navn}: XFI"
+    kommentar = [f"{objekt_navn}: XFI"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
@@ -71,7 +62,7 @@ def process_efi_sheet(df, objekt_navn):
     # Tilpasset behandling for .efi-arkfaner
     postnummer = df.iloc[8:, 0].dropna().values  # Postnummer fra rad 9, kolonne A
     mengder = df.iloc[8:, 10].dropna().values  # Mengder fra rad 9, kolonne K
-    kommentar = f"{objekt_navn}: EFI"
+    kommentar = [f"{objekt_navn}: EFI"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
@@ -89,7 +80,11 @@ if excel_file:
             processed_df = process_aly_sheet(df, objekt_navn)
         elif sheet_name.endswith('.sfi'):
             df = xl.parse(sheet_name)
-            processed_df = process_sfi_sheet(df, objekt_navn)
+            sfi_type = determine_sfi_type(df)
+            if sfi_type == "cross_section":
+                processed_df = process_sfi_cross_section(df, objekt_navn)
+            else:
+                processed_df = process_sfi_longitudinal(df, objekt_navn)
         elif sheet_name.endswith('.xfi'):
             df = xl.parse(sheet_name)
             processed_df = process_xfi_sheet(df, objekt_navn)
@@ -101,8 +96,17 @@ if excel_file:
 
         st.write(f"Behandlet data fra arkfane: {sheet_name}")
         st.dataframe(processed_df)
-        
-        # Lagre resultatet
-        save_path = os.path.join(output_folder, f"behandlet_{sheet_name}.xlsx")
-        processed_df.to_excel(save_path, index=False)
-        st.success(f"Resultatet er lagret i {save_path}")
+
+        # Lagre resultatet i en buffer
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+            processed_df.to_excel(writer, index=False, sheet_name=sheet_name)
+        buffer.seek(0)
+
+        # Tilby nedlasting av filen
+        st.download_button(
+            label=f"Last ned behandlet fil for {sheet_name}",
+            data=buffer,
+            file_name=f"behandlet_{sheet_name}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
