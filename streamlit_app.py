@@ -18,10 +18,9 @@ def process_sfi_cross_section(df, objekt_navn):
     postnummer = df.iloc[5, 1:].dropna().values
     mengder = df.iloc[14, 1:].dropna().values
     profiler = df.iloc[16:, 0].dropna().values
-    # Inkluderer profiler med verdi 0.000
     første_profil = profiler[0] if len(profiler) > 0 else None
     siste_profil = profiler[-1] if len(profiler) > 0 else None
-    kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer) if første_profil is not None and siste_profil is not None else [f"{objekt_navn}: Tverrprofil"] * len(postnummer)
+    kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer) if første_profil and siste_profil else [f"{objekt_navn}: Tverrprofil"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
@@ -99,13 +98,26 @@ if excel_file:
         # Lagre resultatet i en buffer
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            processed_df.to_excel(writer, index=False, sheet_name=sheet_name)
+            processed_df.to_excel(writer, index=False, sheet_name=sheet_name, startrow=1, header=False)
+            workbook = writer.book
+            worksheet = writer.sheets[sheet_name]
+
+            # Legg til tabellstruktur
+            (max_row, max_col) = processed_df.shape
+            column_settings = [{'header': column} for column in processed_df.columns]
+            worksheet.add_table(0, 0, max_row, max_col - 1, {'columns': column_settings})
+
+            # Legg til hyperkoblinger i 'Kommentar'-kolonnen
+            for row_num in range(1, max_row + 1):
+                cell_value = worksheet.cell(row_num, 2).value  # Antatt at 'Kommentar' er i kolonne C (indeks 2)
+                if cell_value:
+                    link = f"https://sharepoint.com/dokumenter/{cell_value}.pdf"  # Tilpass URL etter behov
+                    worksheet.write_url(row_num, 2, link, string=cell_value)
+
         buffer.seek(0)
 
         # Tilby nedlasting av filen
         st.download_button(
-            label=f"Last ned behandlet fil for {sheet_name}",
-            data=buffer,
-            file_name=f"behandlet_{sheet_name}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            label=f"Last ned behandlet fil for {sheet
+::contentReference[oaicite:0]{index=0}
+ 
