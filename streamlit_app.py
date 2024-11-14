@@ -120,4 +120,4 @@ if excel_file:
         st.download_button(
             label=f"Last ned behandlet fil for {sheet
 ::contentReference[oaicite:0]{index=0}
- 
+) 
