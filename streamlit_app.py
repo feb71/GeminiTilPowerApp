@@ -95,7 +95,7 @@ if excel_file and link:
             max_row, max_col = data.shape
 
             # Define the table range and add it to the sheet as a table
-            worksheet.add_table(0, 0, max_row, max_col - 1, {'name': 'Table1', 'columns': [{'header': col} for col in data.columns]})
+            worksheet.add_table(0, 0, max_row, max_col - 1, {'columns': [{'header': col} for col in data.columns]})
     buffer.seek(0)
 
     # Download button for combined file with tables
