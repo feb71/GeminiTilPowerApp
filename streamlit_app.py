@@ -5,36 +5,48 @@ from urllib.parse import quote
 
 def process_aly_sheet(df, objekt_navn):
     try:
-        postnummer = df.iloc[5, 1:].dropna().values
-        mengder = df.iloc[7, 1:].dropna().values
-        kommentar = [f"{objekt_navn}: Applag"] * len(postnummer)
-        data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
-        return pd.DataFrame(data)
+        if df.shape[0] > 7 and df.shape[1] > 1:
+            postnummer = df.iloc[5, 1:].dropna().values
+            mengder = df.iloc[7, 1:].dropna().values
+            kommentar = [f"{objekt_navn}: Applag"] * len(postnummer)
+            data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+            return pd.DataFrame(data)
+        else:
+            st.warning(f"Arkfanen {objekt_navn} har ikke tilstrekkelig data.")
+            return pd.DataFrame()
     except IndexError:
         st.error(f"Feil ved behandling av {objekt_navn}: Sjekk at arket har riktig format.")
         return pd.DataFrame()
 
 def process_sfi_cross_section(df, objekt_navn):
     try:
-        postnummer = df.iloc[5, 1:].dropna().values
-        mengder = df.iloc[14, 1:].dropna().values
-        profiler = df.iloc[16:, 0].dropna().values
-        første_profil = profiler[0] if len(profiler) > 0 else "0.000"
-        siste_profil = profiler[-1] if len(profiler) > 0 else "0.000"
-        kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer)
-        data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
-        return pd.DataFrame(data)
+        if df.shape[0] > 16 and df.shape[1] > 1:
+            postnummer = df.iloc[5, 1:].dropna().values
+            mengder = df.iloc[14, 1:].dropna().values
+            profiler = df.iloc[16:, 0].dropna().values
+            første_profil = profiler[0] if len(profiler) > 0 else "0.000"
+            siste_profil = profiler[-1] if len(profiler) > 0 else "0.000"
+            kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer)
+            data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+            return pd.DataFrame(data)
+        else:
+            st.warning(f"Arkfanen {objekt_navn} har ikke tilstrekkelig data.")
+            return pd.DataFrame()
     except IndexError:
         st.error(f"Feil ved behandling av {objekt_navn}: Sjekk at arket har riktig format.")
         return pd.DataFrame()
 
 def process_sfi_longitudinal(df, objekt_navn):
     try:
-        postnummer = df.iloc[5, 1:].dropna().values
-        mengder = df.iloc[14, 1:].dropna().values
-        kommentar = [f"{objekt_navn}: Lengdeprofil"] * len(postnummer)
-        data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
-        return pd.DataFrame(data)
+        if df.shape[0] > 14 and df.shape[1] > 1:
+            postnummer = df.iloc[5, 1:].dropna().values
+            mengder = df.iloc[14, 1:].dropna().values
+            kommentar = [f"{objekt_navn}: Lengdeprofil"] * len(postnummer)
+            data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+            return pd.DataFrame(data)
+        else:
+            st.warning(f"Arkfanen {objekt_navn} har ikke tilstrekkelig data.")
+            return pd.DataFrame()
     except IndexError:
         st.error(f"Feil ved behandling av {objekt_navn}: Sjekk at arket har riktig format.")
         return pd.DataFrame()
@@ -54,22 +66,30 @@ def determine_sfi_type(df):
 
 def process_xfi_sheet(df, objekt_navn):
     try:
-        postnummer = df.iloc[7:, 0].dropna().values
-        mengder = df.iloc[7:, 10].dropna().values
-        kommentar = [f"{objekt_navn}: XFI"] * len(postnummer)
-        data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
-        return pd.DataFrame(data)
+        if df.shape[0] > 7 and df.shape[1] > 10:
+            postnummer = df.iloc[7:, 0].dropna().values
+            mengder = df.iloc[7:, 10].dropna().values
+            kommentar = [f"{objekt_navn}: XFI"] * len(postnummer)
+            data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+            return pd.DataFrame(data)
+        else:
+            st.warning(f"Arkfanen {objekt_navn} har ikke tilstrekkelig data.")
+            return pd.DataFrame()
     except IndexError:
         st.error(f"Feil ved behandling av {objekt_navn}: Sjekk at arket har riktig format.")
         return pd.DataFrame()
 
 def process_efi_sheet(df, objekt_navn):
     try:
-        postnummer = df.iloc[7:, 0].dropna().values
-        mengder = df.iloc[7:, 10].dropna().values
-        kommentar = [f"{objekt_navn}: EFI"] * len(postnummer)
-        data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
-        return pd.DataFrame(data)
+        if df.shape[0] > 7 and df.shape[1] > 10:
+            postnummer = df.iloc[7:, 0].dropna().values
+            mengder = df.iloc[7:, 10].dropna().values
+            kommentar = [f"{objekt_navn}: EFI"] * len(postnummer)
+            data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+            return pd.DataFrame(data)
+        else:
+            st.warning(f"Arkfanen {objekt_navn} har ikke tilstrekkelig data.")
+            return pd.DataFrame()
     except IndexError:
         st.error(f"Feil ved behandling av {objekt_navn}: Sjekk at arket har riktig format.")
         return pd.DataFrame()
@@ -105,7 +125,7 @@ if excel_file:
             df = xl.parse(sheet_name)
             processed_df = process_efi_sheet(df, objekt_navn)
         else:
-            continue  # Hopp over arkfaner som ikke matcher
+            continue
 
         if not processed_df.empty:
             if sharepoint_url:
@@ -115,13 +135,11 @@ if excel_file:
             st.write(f"Behandlet data fra arkfane: {sheet_name}")
             st.dataframe(processed_df)
 
-            # Lagre resultatet i en buffer
             buffer = io.BytesIO()
             with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
                 processed_df.to_excel(writer, index=False, sheet_name=sheet_name)
             buffer.seek(0)
 
-            # Tilby nedlasting av filen
             st.download_button(
                 label=f"Last ned behandlet fil for {sheet_name}",
                 data=buffer,
