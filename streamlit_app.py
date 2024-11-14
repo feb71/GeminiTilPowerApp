@@ -118,6 +118,8 @@ if excel_file:
 
         # Tilby nedlasting av filen
         st.download_button(
-            label=f"Last ned behandlet fil for {sheet
-::contentReference[oaicite:0]{index=0}
-) 
+    label=f"Last ned behandlet fil for {sheet_name}",
+    data=buffer,
+    file_name=f"behandlet_{sheet_name}.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
