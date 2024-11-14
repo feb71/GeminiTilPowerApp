@@ -2,110 +2,106 @@ import pandas as pd
 import streamlit as st
 import io
 
-def process_aly_sheet(df, objekt_navn):
-    # Henter postnummer fra rad 6, kolonne B og utover
+# Define processing functions with hyperlinks
+def process_aly_sheet(df, objekt_navn, link):
     postnummer = df.iloc[5, 1:].dropna().values
-    # Henter mengder fra rad 8, kolonne B og utover
     mengder = df.iloc[7, 1:].dropna().values
-    # Oppretter en kommentar basert på objektets navn
     kommentar = [f"{objekt_navn}: Applag"] * len(postnummer)
-    # Kombinerer dataene i en DataFrame
-    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+    hyperlinks = [f'=HYPERLINK("{link}", "Dokumentasjon")'] * len(postnummer)
+    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar, "Link": hyperlinks}
     return pd.DataFrame(data)
 
-def process_sfi_cross_section(df, objekt_navn):
-    # Behandlingslogikk for tverrprofil
+def process_sfi_cross_section(df, objekt_navn, link):
     postnummer = df.iloc[5, 1:].dropna().values
     mengder = df.iloc[14, 1:].dropna().values
     profiler = df.iloc[16:, 0].dropna().values
-    # Inkluderer profiler med verdi 0.000
     første_profil = profiler[0] if len(profiler) > 0 else None
     siste_profil = profiler[-1] if len(profiler) > 0 else None
     kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer) if første_profil is not None and siste_profil is not None else [f"{objekt_navn}: Tverrprofil"] * len(postnummer)
-    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+    hyperlinks = [f'=HYPERLINK("{link}", "Dokumentasjon")'] * len(postnummer)
+    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar, "Link": hyperlinks}
     return pd.DataFrame(data)
 
-def process_sfi_longitudinal(df, objekt_navn):
-    # Behandlingslogikk for lengdeprofil
+def process_sfi_longitudinal(df, objekt_navn, link):
     postnummer = df.iloc[5, 1:].dropna().values
     mengder = df.iloc[14, 1:].dropna().values
     kommentar = [f"{objekt_navn}: Lengdeprofil"] * len(postnummer)
-    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+    hyperlinks = [f'=HYPERLINK("{link}", "Dokumentasjon")'] * len(postnummer)
+    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar, "Link": hyperlinks}
     return pd.DataFrame(data)
 
-def determine_sfi_type(df):
-    # Sjekker innholdet i rad 17, kolonne A
-    if df.shape[0] > 16 and df.shape[1] > 0:
-        cell_value = str(df.iloc[16, 0]).strip().lower()
-        if cell_value == 'l':
-            return "longitudinal"
-    
-    # Sjekker enheter i rad 11, fra kolonne B og utover
-    if df.shape[0] > 10 and df.shape[1] > 1:
-        units = df.iloc[10, 1:].dropna().astype(str).str.strip().str.lower()
-        if units.isin(['m²', 'm³', 'm2', 'm3']).any():
-            return "cross_section"
-        elif units.isin(['m']).all():
-            return "longitudinal"
-    
-    # Standard til tverrprofil hvis ingen kriterier er oppfylt
-    return "cross_section"
-
-def process_xfi_sheet(df, objekt_navn):
+def process_xfi_sheet(df, objekt_navn, link):
     postnummer = df.iloc[7:, 0].dropna().values
     mengder = df.iloc[7:, 10].dropna().values
     kommentar = [f"{objekt_navn}: XFI"] * len(postnummer)
-    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+    hyperlinks = [f'=HYPERLINK("{link}", "Dokumentasjon")'] * len(postnummer)
+    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar, "Link": hyperlinks}
     return pd.DataFrame(data)
 
-def process_efi_sheet(df, objekt_navn):
+def process_efi_sheet(df, objekt_navn, link):
     postnummer = df.iloc[7:, 0].dropna().values
     mengder = df.iloc[7:, 10].dropna().values
     kommentar = [f"{objekt_navn}: EFI"] * len(postnummer)
-    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
+    hyperlinks = [f'=HYPERLINK("{link}", "Dokumentasjon")'] * len(postnummer)
+    data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar, "Link": hyperlinks}
     return pd.DataFrame(data)
 
-# Streamlit-oppsett
+# Streamlit setup
 st.title("Excel-filbehandling med dokumentasjonskobling")
 excel_file = st.file_uploader("Last opp en Excel-fil", type=["xlsx", "xls", "xlsm"])
 
-if excel_file:
+# Input for document link
+link = st.text_input("Skriv inn lenken til dokumentasjonen som gjelder for hvert objekt:")
+
+if excel_file and link:
     xl = pd.ExcelFile(excel_file)
+    processed_sheets = {}
 
     for sheet_name in xl.sheet_names:
         objekt_navn = sheet_name.split('.')[0]
+        df = xl.parse(sheet_name)
+        
+        # Process each sheet with hyperlink
         if sheet_name.endswith('.aly'):
-            df = xl.parse(sheet_name)
-            processed_df = process_aly_sheet(df, objekt_navn)
+            processed_df = process_aly_sheet(df, objekt_navn, link)
         elif sheet_name.endswith('.sfi'):
-            df = xl.parse(sheet_name)
             sfi_type = determine_sfi_type(df)
             if sfi_type == "cross_section":
-                processed_df = process_sfi_cross_section(df, objekt_navn)
+                processed_df = process_sfi_cross_section(df, objekt_navn, link)
             else:
-                processed_df = process_sfi_longitudinal(df, objekt_navn)
+                processed_df = process_sfi_longitudinal(df, objekt_navn, link)
         elif sheet_name.endswith('.xfi'):
-            df = xl.parse(sheet_name)
-            processed_df = process_xfi_sheet(df, objekt_navn)
+            processed_df = process_xfi_sheet(df, objekt_navn, link)
         elif sheet_name.endswith('.efi'):
-            df = xl.parse(sheet_name)
-            processed_df = process_efi_sheet(df, objekt_navn)
+            processed_df = process_efi_sheet(df, objekt_navn, link)
         else:
-            continue  # Hopp over arkfaner som ikke matcher
+            continue
 
         st.write(f"Behandlet data fra arkfane: {sheet_name}")
         st.dataframe(processed_df)
+        
+        # Store processed DataFrame with hyperlink column
+        processed_sheets[sheet_name] = processed_df
 
-        # Lagre resultatet i en buffer
-        buffer = io.BytesIO()
-        with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-            processed_df.to_excel(writer, index=False, sheet_name=sheet_name)
-        buffer.seek(0)
+    # Save all processed DataFrames to a single Excel file with table formatting
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        for sheet, data in processed_sheets.items():
+            data.to_excel(writer, index=False, sheet_name=sheet)
+            workbook = writer.book
+            worksheet = writer.sheets[sheet]
 
-        # Tilby nedlasting av filen
-        st.download_button(
-            label=f"Last ned behandlet fil for {sheet_name}",
-            data=buffer,
-            file_name=f"behandlet_{sheet_name}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            # Get the dimensions of the DataFrame
+            max_row, max_col = data.shape
+
+            # Define the table range and add it to the sheet as a table
+            worksheet.add_table(0, 0, max_row, max_col - 1, {'name': 'Table1', 'columns': [{'header': col} for col in data.columns]})
+    buffer.seek(0)
+
+    # Download button for combined file with tables
+    st.download_button(
+        label="Last ned samlet behandlet fil med hyperkoblinger og tabellformat",
+        data=buffer,
+        file_name="behandlet_filer_med_tabel.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
