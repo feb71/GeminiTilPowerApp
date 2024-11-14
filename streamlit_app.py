@@ -50,58 +50,56 @@ def process_efi_sheet(df, objekt_navn, link):
 st.title("Excel-filbehandling med dokumentasjonskobling")
 excel_file = st.file_uploader("Last opp en Excel-fil", type=["xlsx", "xls", "xlsm"])
 
-# Input for document link
-link = st.text_input("Skriv inn lenken til dokumentasjonen som gjelder for hvert objekt:")
-
-if excel_file and link:
+if excel_file:
     xl = pd.ExcelFile(excel_file)
-    processed_sheets = {}
-
+    
+    # Process each sheet individually
     for sheet_name in xl.sheet_names:
         objekt_navn = sheet_name.split('.')[0]
         df = xl.parse(sheet_name)
         
-        # Process each sheet with hyperlink
-        if sheet_name.endswith('.aly'):
-            processed_df = process_aly_sheet(df, objekt_navn, link)
-        elif sheet_name.endswith('.sfi'):
-            sfi_type = determine_sfi_type(df)
-            if sfi_type == "cross_section":
-                processed_df = process_sfi_cross_section(df, objekt_navn, link)
+        # Ask for a link to documentation for each sheet
+        st.write(f"Dokumentasjonskobling for ark: {sheet_name}")
+        link = st.text_input(f"Skriv inn lenken for {sheet_name}", key=sheet_name)
+
+        if link:
+            # Process based on sheet type
+            if sheet_name.endswith('.aly'):
+                processed_df = process_aly_sheet(df, objekt_navn, link)
+            elif sheet_name.endswith('.sfi'):
+                sfi_type = determine_sfi_type(df)
+                if sfi_type == "cross_section":
+                    processed_df = process_sfi_cross_section(df, objekt_navn, link)
+                else:
+                    processed_df = process_sfi_longitudinal(df, objekt_navn, link)
+            elif sheet_name.endswith('.xfi'):
+                processed_df = process_xfi_sheet(df, objekt_navn, link)
+            elif sheet_name.endswith('.efi'):
+                processed_df = process_efi_sheet(df, objekt_navn, link)
             else:
-                processed_df = process_sfi_longitudinal(df, objekt_navn, link)
-        elif sheet_name.endswith('.xfi'):
-            processed_df = process_xfi_sheet(df, objekt_navn, link)
-        elif sheet_name.endswith('.efi'):
-            processed_df = process_efi_sheet(df, objekt_navn, link)
-        else:
-            continue
+                continue
 
-        st.write(f"Behandlet data fra arkfane: {sheet_name}")
-        st.dataframe(processed_df)
-        
-        # Store processed DataFrame with hyperlink column
-        processed_sheets[sheet_name] = processed_df
+            # Display the processed data
+            st.write(f"Behandlet data fra arkfane: {sheet_name}")
+            st.dataframe(processed_df)
 
-    # Save all processed DataFrames to a single Excel file with table formatting
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        for sheet, data in processed_sheets.items():
-            data.to_excel(writer, index=False, sheet_name=sheet)
-            workbook = writer.book
-            worksheet = writer.sheets[sheet]
+            # Prepare a downloadable file for each sheet
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+                processed_df.to_excel(writer, index=False, sheet_name=sheet_name)
+                workbook = writer.book
+                worksheet = writer.sheets[sheet_name]
+                
+                # Format as an Excel table
+                max_row, max_col = processed_df.shape
+                worksheet.add_table(0, 0, max_row, max_col - 1, {'columns': [{'header': col} for col in processed_df.columns]})
+            
+            buffer.seek(0)
 
-            # Get the dimensions of the DataFrame
-            max_row, max_col = data.shape
-
-            # Define the table range and add it to the sheet as a table
-            worksheet.add_table(0, 0, max_row, max_col - 1, {'columns': [{'header': col} for col in data.columns]})
-    buffer.seek(0)
-
-    # Download button for combined file with tables
-    st.download_button(
-        label="Last ned samlet behandlet fil med hyperkoblinger og tabellformat",
-        data=buffer,
-        file_name="behandlet_filer_med_tabel.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+            # Download button for each sheet
+            st.download_button(
+                label=f"Last ned behandlet fil for {sheet_name}",
+                data=buffer,
+                file_name=f"behandlet_{sheet_name}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
