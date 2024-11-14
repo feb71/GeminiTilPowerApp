@@ -3,10 +3,10 @@ import streamlit as st
 import io
 
 def process_aly_sheet(df, objekt_navn):
-    # Henter postnummer fra rad 7, kolonne B og utover
-    postnummer = df.iloc[5, 1:].dropna().values  # Rad 7 tilsvarer indeks 6
-    # Henter mengder fra rad 9, kolonne B og utover
-    mengder = df.iloc[7, 1:].dropna().values  # Rad 9 tilsvarer indeks 8
+    # Henter postnummer fra rad 6, kolonne B og utover
+    postnummer = df.iloc[5, 1:].dropna().values
+    # Henter mengder fra rad 8, kolonne B og utover
+    mengder = df.iloc[7, 1:].dropna().values
     # Oppretter en kommentar basert på objektets navn
     kommentar = [f"{objekt_navn}: Applag"] * len(postnummer)
     # Kombinerer dataene i en DataFrame
@@ -18,28 +18,29 @@ def process_sfi_cross_section(df, objekt_navn):
     postnummer = df.iloc[5, 1:].dropna().values
     mengder = df.iloc[14, 1:].dropna().values
     profiler = df.iloc[16:, 0].dropna().values
+    # Inkluderer profiler med verdi 0.000
     første_profil = profiler[0] if len(profiler) > 0 else None
     siste_profil = profiler[-1] if len(profiler) > 0 else None
-    kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer) if første_profil and siste_profil else [f"{objekt_navn}: Tverrprofil"] * len(postnummer)
+    kommentar = [f"{objekt_navn}: Fra profil {første_profil} til profil {siste_profil}"] * len(postnummer) if første_profil is not None and siste_profil is not None else [f"{objekt_navn}: Tverrprofil"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
 def process_sfi_longitudinal(df, objekt_navn):
     # Behandlingslogikk for lengdeprofil
-    postnummer = df.iloc[5, 1:].dropna().values  # Postnummer i rad 7, fra kolonne B
-    mengder = df.iloc[14, 1:].dropna().values  # Mengde i rad 16, fra kolonne B
-    kommentar = [f"{objekt_navn}: Lengdeprofil"] * len(postnummer)  # Enklere kommentar for lengdeprofil
+    postnummer = df.iloc[5, 1:].dropna().values
+    mengder = df.iloc[14, 1:].dropna().values
+    kommentar = [f"{objekt_navn}: Lengdeprofil"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
 def determine_sfi_type(df):
-    # Sjekker innholdet i rad 18, kolonne A
+    # Sjekker innholdet i rad 17, kolonne A
     if df.shape[0] > 16 and df.shape[1] > 0:
         cell_value = str(df.iloc[16, 0]).strip().lower()
         if cell_value == 'l':
             return "longitudinal"
     
-    # Sjekker enheter i rad 12, fra kolonne B og utover
+    # Sjekker enheter i rad 11, fra kolonne B og utover
     if df.shape[0] > 10 and df.shape[1] > 1:
         units = df.iloc[10, 1:].dropna().astype(str).str.strip().str.lower()
         if units.isin(['m²', 'm³', 'm2', 'm3']).any():
@@ -51,17 +52,15 @@ def determine_sfi_type(df):
     return "cross_section"
 
 def process_xfi_sheet(df, objekt_navn):
-    # Tilpasset behandling for .xfi-arkfaner
-    postnummer = df.iloc[7:, 0].dropna().values  # Postnummer fra rad 9, kolonne A
-    mengder = df.iloc[7:, 10].dropna().values  # Mengder fra rad 9, kolonne K
+    postnummer = df.iloc[7:, 0].dropna().values
+    mengder = df.iloc[7:, 10].dropna().values
     kommentar = [f"{objekt_navn}: XFI"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
 
 def process_efi_sheet(df, objekt_navn):
-    # Tilpasset behandling for .efi-arkfaner
-    postnummer = df.iloc[7:, 0].dropna().values  # Postnummer fra rad 9, kolonne A
-    mengder = df.iloc[7:, 10].dropna().values  # Mengder fra rad 9, kolonne K
+    postnummer = df.iloc[7:, 0].dropna().values
+    mengder = df.iloc[7:, 10].dropna().values
     kommentar = [f"{objekt_navn}: EFI"] * len(postnummer)
     data = {"Postnummer": postnummer, "Mengde": mengder, "Kommentar": kommentar}
     return pd.DataFrame(data)
