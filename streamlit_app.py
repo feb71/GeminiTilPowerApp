@@ -4,9 +4,9 @@ import io
 
 def process_aly_sheet(df, objekt_navn):
     # Henter postnummer fra rad 7, kolonne B og utover
-    postnummer = df.iloc[6, 1:].dropna().values  # Rad 7 tilsvarer indeks 6
+    postnummer = df.iloc[5, 1:].dropna().values  # Rad 7 tilsvarer indeks 6
     # Henter mengder fra rad 9, kolonne B og utover
-    mengder = df.iloc[8, 1:].dropna().values  # Rad 9 tilsvarer indeks 8
+    mengder = df.iloc[7, 1:].dropna().values  # Rad 9 tilsvarer indeks 8
     # Oppretter en kommentar basert på objektets navn
     kommentar = [f"{objekt_navn}: Applag"] * len(postnummer)
     # Kombinerer dataene i en DataFrame
