@@ -2,6 +2,25 @@ import pandas as pd
 import streamlit as st
 import io
 
+# Function to determine the type of .sfi sheet (cross_section or longitudinal)
+def determine_sfi_type(df):
+    # Check if row 17, column A has 'L' to indicate longitudinal profile
+    if df.shape[0] > 16 and df.shape[1] > 0:
+        cell_value = str(df.iloc[16, 0]).strip().lower()
+        if cell_value == 'l':
+            return "longitudinal"
+    
+    # Check for specific units in row 11 to infer cross_section or longitudinal
+    if df.shape[0] > 10 and df.shape[1] > 1:
+        units = df.iloc[10, 1:].dropna().astype(str).str.strip().str.lower()
+        if units.isin(['m²', 'm³', 'm2', 'm3']).any():
+            return "cross_section"
+        elif units.isin(['m']).all():
+            return "longitudinal"
+    
+    # Default to cross_section if no criteria are met
+    return "cross_section"
+
 # Define processing functions without hyperlinks
 def process_aly_sheet(df, objekt_navn):
     postnummer = df.iloc[5, 1:].dropna().values
